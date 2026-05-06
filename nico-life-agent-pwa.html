@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-<meta name="theme-color" content="#0A2E6E"/>
+<meta name="theme-color" content="#00AEEF"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="NICO Agent"/>
@@ -610,6 +610,9 @@ a{text-decoration:none;color:inherit}
         <div class="dash-greeting" id="dash-greeting">Good morning,</div>
         <div class="dash-name" id="dash-agent-name">Loading…</div>
         <div class="dash-badge" id="dash-badge">Senior Agent</div>
+      <button id="pwa-install-btn" onclick="triggerInstall()" style="display:none;margin-top:12px;align-items:center;gap:8px;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);border-radius:20px;padding:7px 16px;color:white;font-size:12px;font-weight:700;font-family:var(--ff-body);cursor:pointer">
+        📲 Install App
+      </button>
       </div>
 
       <div class="stats-row">
@@ -1807,10 +1810,47 @@ function showToast(msg){
 // ============================================================
 // PWA SERVICE WORKER (inline)
 // ============================================================
+// ============================================================
+// PWA INSTALL PROMPT
+// ============================================================
+let deferredInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  // Show install banner on dashboard after login
+  const btn = document.getElementById('pwa-install-btn');
+  if(btn) btn.style.display = 'flex';
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredInstallPrompt = null;
+  const btn = document.getElementById('pwa-install-btn');
+  if(btn) btn.style.display = 'none';
+  showToast('App installed successfully ✓');
+});
+
+function triggerInstall(){
+  if(!deferredInstallPrompt){ showToast('Open in Chrome to install'); return; }
+  deferredInstallPrompt.prompt();
+  deferredInstallPrompt.userChoice.then(r => {
+    if(r.outcome === 'accepted') showToast('Installing NICO Agent… ✓');
+    deferredInstallPrompt = null;
+  });
+}
+
+// ============================================================
+// SERVICE WORKER
+// ============================================================
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('./sw.js').then(reg=>{
-    console.log('[NICO] Service Worker registered:', reg.scope);
-  }).catch(err=>console.warn('[NICO] SW registration failed:', err));
+  const swScope = new URL('./sw.js', location.href).pathname.replace('sw.js','');
+  navigator.serviceWorker.register('./sw.js', { scope: swScope })
+    .then(reg => {
+      console.log('[NICO] SW registered, scope:', reg.scope);
+      // Force update check each visit
+      reg.update();
+    })
+    .catch(err => console.warn('[NICO] SW failed:', err));
 }
 
 // ============================================================
