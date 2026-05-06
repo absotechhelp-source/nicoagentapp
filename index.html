@@ -1,0 +1,1851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="theme-color" content="#0A2E6E"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="NICO Agent"/>
+<meta name="description" content="NICO Life Insurance Agent App"/>
+<title>NICO Life — Agent Portal</title>
+
+<link rel="manifest" href="./manifest.json"/>
+<link rel="icon" type="image/x-icon" href="./icons/favicon.ico"/>
+<link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32x32.png"/>
+<link rel="icon" type="image/png" sizes="16x16" href="./icons/favicon-16x16.png"/>
+<link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+/* ============================================================
+   TOKENS & RESET
+============================================================ */
+:root{
+  --brand-dark:   #061B50;
+  --brand-blue:   #0A3FA8;
+  --brand-mid:    #1565D8;
+  --brand-sky:    #00AEEF;
+  --brand-cyan:   #38D1F7;
+  --brand-green:  #3ABF7E;
+  --brand-gold:   #F5A623;
+  --brand-red:    #E0365A;
+  --white:        #FFFFFF;
+  --surface:      #F2F6FF;
+  --surface-card: #FFFFFF;
+  --text-primary: #0D1B3E;
+  --text-secondary:#4A5880;
+  --text-muted:   #8A96B0;
+  --border:       #DDE4F2;
+  --shadow-sm:    0 2px 8px rgba(10,63,168,.10);
+  --shadow-md:    0 6px 24px rgba(10,63,168,.14);
+  --shadow-lg:    0 16px 48px rgba(10,63,168,.18);
+  --radius-sm:    10px;
+  --radius-md:    16px;
+  --radius-lg:    24px;
+  --radius-xl:    32px;
+  --nav-h:        70px;
+  --header-h:     60px;
+  --ff-head:      'Playfair Display', serif;
+  --ff-body:      'DM Sans', sans-serif;
+  --transition:   .22s cubic-bezier(.4,0,.2,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--brand-dark);font-family:var(--ff-body);color:var(--text-primary)}
+button{font-family:var(--ff-body);cursor:pointer;border:none;background:none}
+input,select,textarea{font-family:var(--ff-body)}
+img{max-width:100%;display:block}
+a{text-decoration:none;color:inherit}
+
+/* ============================================================
+   APP SHELL
+============================================================ */
+#app{
+  width:100%;max-width:480px;height:100dvh;
+  margin:0 auto;position:relative;overflow:hidden;
+  background:var(--surface);display:flex;flex-direction:column;
+}
+
+/* ============================================================
+   SCREENS
+============================================================ */
+.screen{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;
+  opacity:0;pointer-events:none;
+  transform:translateX(30px);
+  transition:opacity var(--transition),transform var(--transition);
+  overflow:hidden;
+}
+.screen.active{
+  opacity:1;pointer-events:all;
+  transform:translateX(0);
+}
+
+/* ============================================================
+   SCROLLABLE BODY
+============================================================ */
+.screen-body{
+  flex:1;overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+  padding-bottom:calc(var(--nav-h) + 16px);
+}
+.screen-body::-webkit-scrollbar{display:none}
+
+/* ============================================================
+   TOP HEADER
+============================================================ */
+.top-bar{
+  height:var(--header-h);min-height:var(--header-h);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;
+  background:var(--brand-dark);
+  color:var(--white);
+  position:relative;z-index:10;
+}
+.top-bar h1{font-family:var(--ff-head);font-size:18px;font-weight:700;letter-spacing:-.3px}
+.top-bar-icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.12);color:var(--white);font-size:16px}
+
+/* ============================================================
+   BOTTOM NAV
+============================================================ */
+.bottom-nav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:480px;height:var(--nav-h);
+  background:var(--white);border-top:1px solid var(--border);
+  display:flex;align-items:stretch;
+  z-index:100;
+  box-shadow:0 -4px 20px rgba(10,63,168,.10);
+}
+.nav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:4px;padding:8px 4px;
+  color:var(--text-muted);font-size:10px;font-weight:500;
+  transition:color var(--transition);cursor:pointer;
+  border:none;background:none;
+}
+.nav-item svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:stroke var(--transition)}
+.nav-item.active{color:var(--brand-blue)}
+.nav-item.active svg{stroke:var(--brand-blue)}
+.nav-item span{line-height:1}
+#nav-bar{display:none}
+
+/* ============================================================
+   LOGIN SCREEN
+============================================================ */
+#screen-login{
+  background:linear-gradient(160deg, var(--brand-dark) 0%, var(--brand-blue) 60%, #0E5DA8 100%);
+  justify-content:center;align-items:center;
+  padding:32px 28px;gap:0;
+}
+.login-logo{text-align:center;margin-bottom:32px}
+.login-logo .logo-box{
+  width:90px;height:90px;border-radius:24px;
+  background:rgba(255,255,255,.12);
+  backdrop-filter:blur(12px);border:1.5px solid rgba(255,255,255,.25);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 16px;
+  box-shadow:0 8px 32px rgba(0,0,0,.25);
+}
+.login-logo .logo-box svg{width:52px;height:52px}
+.login-logo h2{font-family:var(--ff-head);font-size:26px;font-weight:800;color:var(--white);letter-spacing:-.5px}
+.login-logo p{color:rgba(255,255,255,.65);font-size:13px;margin-top:4px;font-weight:300}
+.login-card{
+  width:100%;background:rgba(255,255,255,.10);
+  backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.2);
+  border-radius:var(--radius-xl);padding:28px 24px;
+}
+.form-group{margin-bottom:18px}
+.form-group label{display:block;color:rgba(255,255,255,.8);font-size:12px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px}
+.form-group input{
+  width:100%;background:rgba(255,255,255,.12);
+  border:1.5px solid rgba(255,255,255,.2);border-radius:var(--radius-sm);
+  padding:14px 16px;color:var(--white);font-size:15px;
+  transition:border-color var(--transition),background var(--transition);
+}
+.form-group input::placeholder{color:rgba(255,255,255,.4)}
+.form-group input:focus{outline:none;border-color:var(--brand-sky);background:rgba(255,255,255,.18)}
+.btn-primary{
+  width:100%;padding:15px;border-radius:var(--radius-sm);
+  background:linear-gradient(135deg,var(--brand-sky),var(--brand-cyan));
+  color:var(--brand-dark);font-size:16px;font-weight:700;
+  letter-spacing:.3px;box-shadow:0 4px 20px rgba(0,174,239,.4);
+  transition:transform .15s,box-shadow .15s;
+}
+.btn-primary:active{transform:scale(.97);box-shadow:0 2px 8px rgba(0,174,239,.3)}
+.login-footer{text-align:center;margin-top:20px;color:rgba(255,255,255,.5);font-size:12px}
+
+/* ============================================================
+   DASHBOARD
+============================================================ */
+#screen-dashboard{background:var(--surface)}
+.dash-header{
+  background:linear-gradient(135deg,var(--brand-dark) 0%,var(--brand-blue) 100%);
+  padding:20px 20px 60px;position:relative;overflow:hidden;
+}
+.dash-header::before{
+  content:'';position:absolute;right:-30px;top:-30px;
+  width:180px;height:180px;border-radius:50%;
+  background:rgba(255,255,255,.06);
+}
+.dash-header::after{
+  content:'';position:absolute;right:40px;top:20px;
+  width:100px;height:100px;border-radius:50%;
+  background:rgba(0,174,239,.15);
+}
+.dash-greeting{color:rgba(255,255,255,.7);font-size:13px;font-weight:400;margin-bottom:4px}
+.dash-name{color:var(--white);font-family:var(--ff-head);font-size:22px;font-weight:700;letter-spacing:-.3px}
+.dash-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);border-radius:20px;padding:4px 12px;margin-top:8px;color:rgba(255,255,255,.85);font-size:11px;font-weight:600}
+.dash-badge::before{content:'●';color:var(--brand-sky);font-size:8px}
+
+.stats-row{
+  display:grid;grid-template-columns:1fr 1fr;gap:12px;
+  margin:-36px 16px 0;position:relative;z-index:2;
+}
+.stat-card{
+  background:var(--white);border-radius:var(--radius-md);
+  padding:16px;box-shadow:var(--shadow-md);
+}
+.stat-card .label{font-size:11px;color:var(--text-muted);font-weight:500;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
+.stat-card .value{font-family:var(--ff-head);font-size:22px;font-weight:700;color:var(--brand-dark)}
+.stat-card .sub{font-size:11px;color:var(--brand-green);font-weight:600;margin-top:4px}
+.stat-card.accent{background:linear-gradient(135deg,var(--brand-mid),var(--brand-sky))}
+.stat-card.accent .label,.stat-card.accent .value,.stat-card.accent .sub{color:var(--white)}
+
+.section-title{font-family:var(--ff-head);font-size:17px;font-weight:700;color:var(--brand-dark);padding:20px 20px 12px;letter-spacing:-.3px}
+
+.quick-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:0 16px}
+.tile{
+  background:var(--white);border-radius:var(--radius-md);
+  padding:18px 12px;text-align:center;
+  box-shadow:var(--shadow-sm);cursor:pointer;
+  transition:transform .15s,box-shadow .15s;
+  border:1px solid var(--border);
+}
+.tile:active{transform:scale(.95)}
+.tile-icon{font-size:24px;margin-bottom:8px;line-height:1}
+.tile-label{font-size:11px;font-weight:600;color:var(--text-secondary);line-height:1.2}
+
+.recent-list{padding:0 16px;display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+.recent-card{
+  background:var(--white);border-radius:var(--radius-md);
+  padding:14px 16px;box-shadow:var(--shadow-sm);
+  display:flex;align-items:center;gap:12px;
+  border:1px solid var(--border);cursor:pointer;
+  transition:transform .15s;
+}
+.recent-card:active{transform:scale(.98)}
+.recent-avatar{
+  width:40px;height:40px;border-radius:12px;
+  background:linear-gradient(135deg,var(--brand-mid),var(--brand-sky));
+  display:flex;align-items:center;justify-content:center;
+  color:var(--white);font-weight:700;font-size:15px;flex-shrink:0;
+}
+.recent-info{flex:1;min-width:0}
+.recent-name{font-weight:600;font-size:14px;color:var(--brand-dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.recent-meta{font-size:11px;color:var(--text-muted);margin-top:2px}
+.recent-amount{font-family:var(--ff-head);font-size:14px;font-weight:700;color:var(--brand-blue);white-space:nowrap}
+
+/* ============================================================
+   QUOTE GENERATOR
+============================================================ */
+#screen-quote{background:var(--surface)}
+.quote-form-card{
+  margin:16px;background:var(--white);
+  border-radius:var(--radius-lg);padding:20px;
+  box-shadow:var(--shadow-md);
+}
+.field-group{margin-bottom:16px}
+.field-group label{display:block;font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
+.field-group input,.field-group select{
+  width:100%;border:1.5px solid var(--border);
+  border-radius:var(--radius-sm);padding:12px 14px;
+  font-size:15px;color:var(--text-primary);
+  background:var(--surface);
+  transition:border-color var(--transition);
+}
+.field-group input:focus,.field-group select:focus{outline:none;border-color:var(--brand-blue)}
+.field-group select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234A5880' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
+
+.premium-slider-row{display:flex;align-items:center;gap:10px;margin-top:8px}
+.premium-slider-row input[type=range]{flex:1;accent-color:var(--brand-blue);height:4px}
+.premium-val{font-weight:700;font-size:15px;color:var(--brand-blue);white-space:nowrap;min-width:100px;text-align:right}
+
+.btn-generate{
+  width:100%;margin:0 16px;width:calc(100% - 32px);
+  padding:16px;border-radius:var(--radius-sm);
+  background:linear-gradient(135deg,var(--brand-blue),var(--brand-sky));
+  color:var(--white);font-size:16px;font-weight:700;
+  box-shadow:0 4px 20px rgba(10,63,168,.3);
+  transition:transform .15s;
+}
+.btn-generate:active{transform:scale(.97)}
+
+/* Quote Result */
+#quote-result{display:none;margin:16px;animation:slideUp .3s ease}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.result-card{background:var(--white);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-lg)}
+.result-header{
+  background:linear-gradient(135deg,var(--brand-dark),var(--brand-blue));
+  padding:20px;
+}
+.result-header .client-name{font-family:var(--ff-head);font-size:20px;font-weight:700;color:var(--white);margin-bottom:2px}
+.result-header .ref{font-size:11px;color:rgba(255,255,255,.6);font-weight:500}
+.result-header .premium-badge{
+  display:inline-flex;align-items:baseline;gap:4px;
+  background:rgba(255,255,255,.12);border-radius:10px;
+  padding:6px 14px;margin-top:12px;
+}
+.result-header .premium-badge .amount{font-family:var(--ff-head);font-size:22px;font-weight:700;color:var(--brand-cyan)}
+.result-header .premium-badge .per{font-size:12px;color:rgba(255,255,255,.7)}
+
+.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border)}
+.result-cell{background:var(--white);padding:14px 16px}
+.result-cell .cell-label{font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.result-cell .cell-value{font-family:var(--ff-head);font-size:15px;font-weight:700;color:var(--brand-dark)}
+.result-cell.highlight .cell-value{color:var(--brand-green)}
+.result-cell.wide{grid-column:1/-1}
+
+.bonus-row{padding:14px 16px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.bonus-badge{background:linear-gradient(135deg,#FEF3C7,#FDE68A);border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;color:#92400E}
+
+.scenario-tabs{display:flex;gap:8px;padding:14px 16px;background:var(--surface)}
+.s-tab{flex:1;padding:10px;border-radius:8px;font-size:11px;font-weight:600;text-align:center;border:1.5px solid var(--border);background:var(--white);color:var(--text-muted);cursor:pointer;transition:all .2s}
+.s-tab.active{background:var(--brand-blue);border-color:var(--brand-blue);color:var(--white)}
+
+.share-row{display:flex;gap:8px;padding:16px}
+.share-btn{
+  flex:1;padding:12px 8px;border-radius:10px;
+  font-size:12px;font-weight:700;display:flex;flex-direction:column;
+  align-items:center;gap:4px;cursor:pointer;transition:transform .15s;border:none;
+}
+.share-btn:active{transform:scale(.94)}
+.share-btn.whatsapp{background:#E7F9EF;color:#25D366}
+.share-btn.email{background:#EEF2FF;color:var(--brand-blue)}
+.share-btn.pdf{background:#FFF0F3;color:var(--brand-red)}
+.share-btn span{font-size:20px}
+
+/* ============================================================
+   HISTORY
+============================================================ */
+#screen-history{background:var(--surface)}
+.search-wrap{padding:16px 16px 8px;position:relative}
+.search-wrap input{
+  width:100%;border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  padding:12px 14px 12px 42px;font-size:14px;background:var(--white);
+}
+.search-wrap::before{content:'🔍';position:absolute;left:28px;top:50%;transform:translateY(-50%);font-size:14px;pointer-events:none}
+.filter-chips{display:flex;gap:8px;padding:0 16px 12px;overflow-x:auto;scrollbar-width:none}
+.filter-chips::-webkit-scrollbar{display:none}
+.chip{padding:6px 16px;border-radius:20px;font-size:12px;font-weight:600;border:1.5px solid var(--border);background:var(--white);color:var(--text-secondary);white-space:nowrap;cursor:pointer;transition:all .2s}
+.chip.active{background:var(--brand-blue);border-color:var(--brand-blue);color:var(--white)}
+.hist-list{padding:0 16px;display:flex;flex-direction:column;gap:10px}
+.hist-card{
+  background:var(--white);border-radius:var(--radius-md);
+  padding:14px 16px;box-shadow:var(--shadow-sm);
+  border:1px solid var(--border);cursor:pointer;
+  transition:transform .15s;
+}
+.hist-card:active{transform:scale(.98)}
+.hist-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.hist-client{font-weight:700;font-size:15px;color:var(--brand-dark)}
+.hist-amount{font-family:var(--ff-head);font-size:14px;font-weight:700;color:var(--brand-blue)}
+.hist-meta{display:flex;gap:12px;align-items:center}
+.hist-date{font-size:11px;color:var(--text-muted)}
+.hist-status{display:inline-flex;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700}
+.hist-status.sent{background:#E7F9EF;color:#16A34A}
+.hist-status.draft{background:#FFF8E7;color:#D97706}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text-muted)}
+.empty-state .emoji{font-size:48px;margin-bottom:12px}
+.empty-state p{font-size:14px;line-height:1.6}
+
+/* ============================================================
+   PRODUCTS
+============================================================ */
+#screen-products{background:var(--surface)}
+.prod-card{
+  margin:0 16px 14px;background:var(--white);
+  border-radius:var(--radius-lg);overflow:hidden;
+  box-shadow:var(--shadow-md);border:1px solid var(--border);
+}
+.prod-banner{
+  height:120px;position:relative;overflow:hidden;
+  background:linear-gradient(135deg,var(--brand-dark),var(--brand-blue));
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px;
+}
+.prod-banner.green{background:linear-gradient(135deg,#064E3B,#059669)}
+.prod-banner.gold{background:linear-gradient(135deg,#78350F,#D97706)}
+.prod-banner-title{font-family:var(--ff-head);font-size:20px;font-weight:800;color:var(--white);line-height:1.2}
+.prod-banner-icon{font-size:48px;opacity:.9}
+.prod-badge{
+  position:absolute;top:12px;right:12px;
+  padding:4px 10px;border-radius:20px;
+  font-size:10px;font-weight:700;letter-spacing:.3px;
+}
+.prod-badge.live{background:#22C55E;color:var(--white)}
+.prod-badge.soon{background:rgba(255,255,255,.2);color:var(--white);border:1px solid rgba(255,255,255,.4)}
+.prod-body{padding:18px}
+.prod-body h3{font-family:var(--ff-head);font-size:17px;font-weight:700;color:var(--brand-dark);margin-bottom:6px}
+.prod-body p{font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:14px}
+.prod-features{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.prod-feature{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-primary);font-weight:500}
+.prod-feature::before{content:'✓';color:var(--brand-green);font-weight:800;font-size:14px}
+.prod-cta{
+  width:100%;padding:13px;border-radius:var(--radius-sm);
+  font-size:14px;font-weight:700;
+  background:var(--brand-blue);color:var(--white);
+  transition:background .2s;
+}
+.prod-cta.disabled{background:var(--border);color:var(--text-muted);cursor:default}
+
+/* ============================================================
+   BUSINESS CARD
+============================================================ */
+#screen-card{background:var(--surface)}
+.card-preview-wrap{padding:20px 16px}
+#biz-card{
+  border-radius:var(--radius-lg);overflow:hidden;
+  box-shadow:var(--shadow-lg);
+  background:linear-gradient(135deg,var(--brand-dark) 0%,var(--brand-blue) 50%,#0E7DC2 100%);
+  padding:28px 24px 24px;position:relative;
+  min-height:200px;
+}
+#biz-card::before{
+  content:'';position:absolute;
+  right:-30px;bottom:-30px;
+  width:200px;height:200px;border-radius:50%;
+  background:rgba(0,174,239,.15);
+}
+#biz-card::after{
+  content:'';position:absolute;
+  right:30px;top:20px;
+  width:80px;height:80px;border-radius:50%;
+  background:rgba(255,255,255,.06);
+}
+.card-nico-logo{
+  width:48px;height:48px;background:rgba(255,255,255,.15);
+  border-radius:12px;display:flex;align-items:center;justify-content:center;
+  margin-bottom:16px;
+}
+.card-agent-name{font-family:var(--ff-head);font-size:22px;font-weight:800;color:var(--white);margin-bottom:4px;letter-spacing:-.3px}
+.card-agent-title{font-size:12px;color:rgba(255,255,255,.7);font-weight:500;margin-bottom:18px}
+.card-divider{height:1px;background:rgba(255,255,255,.15);margin-bottom:18px}
+.card-contacts{display:flex;flex-direction:column;gap:8px}
+.card-contact-row{display:flex;align-items:center;gap:10px;font-size:12px;color:rgba(255,255,255,.85)}
+.card-contact-row span:first-child{font-size:14px}
+.card-brand-row{display:flex;align-items:center;justify-content:space-between;margin-top:20px}
+.card-brand-name{font-family:var(--ff-head);font-size:13px;font-weight:700;color:var(--brand-sky);letter-spacing:.5px}
+.card-brand-tag{font-size:10px;color:rgba(255,255,255,.5);font-style:italic}
+
+.card-actions{display:flex;gap:10px;padding:0 16px}
+.card-action-btn{
+  flex:1;padding:14px;border-radius:var(--radius-sm);
+  font-size:13px;font-weight:700;display:flex;align-items:center;
+  justify-content:center;gap:8px;transition:transform .15s;
+}
+.card-action-btn:active{transform:scale(.96)}
+.card-action-btn.primary{background:var(--brand-blue);color:var(--white)}
+.card-action-btn.secondary{background:var(--white);color:var(--brand-blue);border:1.5px solid var(--border)}
+
+.card-edit-section{margin:20px 16px 0;background:var(--white);border-radius:var(--radius-md);padding:18px;box-shadow:var(--shadow-sm)}
+.card-edit-section h3{font-weight:700;font-size:14px;color:var(--brand-dark);margin-bottom:14px}
+
+/* ============================================================
+   PROFILE
+============================================================ */
+#screen-profile{background:var(--surface)}
+.profile-header{
+  background:linear-gradient(135deg,var(--brand-dark),var(--brand-blue));
+  padding:28px 20px 24px;text-align:center;
+}
+.profile-avatar{
+  width:72px;height:72px;border-radius:50%;
+  background:linear-gradient(135deg,var(--brand-sky),var(--brand-cyan));
+  border:3px solid rgba(255,255,255,.3);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--ff-head);font-size:26px;font-weight:700;
+  color:var(--brand-dark);margin:0 auto 12px;
+}
+.profile-name{font-family:var(--ff-head);font-size:20px;font-weight:700;color:var(--white)}
+.profile-role{font-size:12px;color:rgba(255,255,255,.65);margin-top:4px}
+.profile-stats{display:flex;margin-top:16px;background:rgba(255,255,255,.08);border-radius:14px;overflow:hidden}
+.p-stat{flex:1;padding:14px;text-align:center}
+.p-stat .v{font-family:var(--ff-head);font-size:20px;font-weight:700;color:var(--white)}
+.p-stat .l{font-size:10px;color:rgba(255,255,255,.6);font-weight:500;margin-top:2px}
+.p-stat+.p-stat{border-left:1px solid rgba(255,255,255,.12)}
+
+.settings-section{margin:16px;background:var(--white);border-radius:var(--radius-md);box-shadow:var(--shadow-sm);overflow:hidden}
+.settings-section-title{padding:14px 16px 8px;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px}
+.setting-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;
+  transition:background .15s;
+}
+.setting-item:last-child{border-bottom:none}
+.setting-item:active{background:var(--surface)}
+.setting-item-left{display:flex;align-items:center;gap:12px}
+.setting-item-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.setting-item-icon.blue{background:#EEF2FF}
+.setting-item-icon.green{background:#E7F9EF}
+.setting-item-icon.orange{background:#FFF7ED}
+.setting-item-icon.red{background:#FFF0F3}
+.setting-label{font-size:14px;font-weight:600;color:var(--text-primary)}
+.setting-sub{font-size:11px;color:var(--text-muted);margin-top:1px}
+.setting-arrow{color:var(--text-muted);font-size:16px}
+
+/* Toggle */
+.toggle{position:relative;width:42px;height:24px}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{
+  position:absolute;inset:0;background:#CBD5E1;border-radius:24px;
+  transition:background .2s;cursor:pointer;
+}
+.toggle-slider::before{
+  content:'';position:absolute;width:18px;height:18px;
+  border-radius:50%;background:var(--white);top:3px;left:3px;
+  transition:transform .2s;box-shadow:0 1px 4px rgba(0,0,0,.2);
+}
+.toggle input:checked+.toggle-slider{background:var(--brand-blue)}
+.toggle input:checked+.toggle-slider::before{transform:translateX(18px)}
+
+/* Sheets sync */
+.sheets-config{margin:16px;background:var(--white);border-radius:var(--radius-md);padding:18px;box-shadow:var(--shadow-sm)}
+.sheets-config h3{font-weight:700;font-size:14px;color:var(--brand-dark);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.sheets-status{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;margin-bottom:12px}
+.sheets-status.connected{color:var(--brand-green)}
+.sheets-status.disconnected{color:var(--text-muted)}
+.sheets-status::before{content:'●';font-size:8px}
+
+/* ============================================================
+   MODAL
+============================================================ */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(6,27,80,.6);
+  backdrop-filter:blur(4px);z-index:200;
+  display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .25s;
+}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal-sheet{
+  width:100%;max-width:480px;background:var(--white);
+  border-radius:var(--radius-xl) var(--radius-xl) 0 0;
+  padding:24px 24px 40px;
+  transform:translateY(100%);transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+  max-height:85vh;overflow-y:auto;
+}
+.modal-overlay.open .modal-sheet{transform:translateY(0)}
+.modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px}
+.modal-title{font-family:var(--ff-head);font-size:20px;font-weight:700;color:var(--brand-dark);margin-bottom:16px}
+
+/* ============================================================
+   TOAST
+============================================================ */
+#toast{
+  position:fixed;bottom:calc(var(--nav-h) + 16px);left:50%;
+  transform:translateX(-50%) translateY(20px);
+  background:var(--brand-dark);color:var(--white);
+  padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;
+  opacity:0;transition:opacity .2s,transform .2s;z-index:300;
+  pointer-events:none;white-space:nowrap;
+  box-shadow:0 4px 20px rgba(0,0,0,.25);
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ============================================================
+   UTILITIES
+============================================================ */
+.mt-4{margin-top:4px}.mt-8{margin-top:8px}.mt-16{margin-top:16px}
+.fw-7{font-weight:700}.text-blue{color:var(--brand-blue)}
+.divider{height:1px;background:var(--border);margin:0 16px}
+
+/* PDF Quote template (hidden) */
+#pdf-template{position:fixed;left:-9999px;top:0;width:800px;padding:40px;background:#fff;font-family:'DM Sans',sans-serif}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- =========================================================
+       LOGIN SCREEN
+  ========================================================= -->
+  <div class="screen active" id="screen-login">
+    <div class="login-logo">
+      <div class="logo-box">
+        <svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="4" width="44" height="44" rx="12" fill="rgba(255,255,255,0.15)"/>
+          <path d="M12 38V14l14 16 14-16v24" stroke="#00AEEF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="26" cy="28" r="4" fill="#38D1F7"/>
+        </svg>
+      </div>
+      <h2>NICO Life</h2>
+      <p>Agent Portal · In Partnership with Sanlam|Allianz</p>
+    </div>
+
+    <div class="login-card">
+      <div class="form-group">
+        <label>Agent ID / Email</label>
+        <input type="text" id="login-user" placeholder="e.g. AGT-001 or email" autocomplete="username"/>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password"/>
+      </div>
+      <button class="btn-primary" onclick="doLogin()">Sign In →</button>
+    </div>
+    <div class="login-footer">NICO Life Insurance · Stable · Secure · Mature</div>
+  </div>
+
+  <!-- =========================================================
+       DASHBOARD
+  ========================================================= -->
+  <div class="screen" id="screen-dashboard">
+    <div class="screen-body">
+      <div class="dash-header">
+        <div class="dash-greeting" id="dash-greeting">Good morning,</div>
+        <div class="dash-name" id="dash-agent-name">Loading…</div>
+        <div class="dash-badge" id="dash-badge">Senior Agent</div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card accent">
+          <div class="label">Total Quotes</div>
+          <div class="value" id="stat-quotes">0</div>
+          <div class="sub">↑ This month</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">This Week</div>
+          <div class="value" id="stat-week">0</div>
+          <div class="sub" style="color:var(--text-muted)">Quotes generated</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Avg Premium</div>
+          <div class="value" id="stat-avg">—</div>
+          <div class="sub" style="color:var(--text-muted)">MWK / month</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Sent</div>
+          <div class="value" id="stat-sent">0</div>
+          <div class="sub" style="color:var(--brand-green)">To clients</div>
+        </div>
+      </div>
+
+      <div class="section-title">Quick Actions</div>
+      <div class="quick-tiles">
+        <div class="tile" onclick="goto('quote')">
+          <div class="tile-icon">📊</div>
+          <div class="tile-label">New Quote</div>
+        </div>
+        <div class="tile" onclick="goto('history')">
+          <div class="tile-icon">🗂️</div>
+          <div class="tile-label">History</div>
+        </div>
+        <div class="tile" onclick="goto('products')">
+          <div class="tile-icon">🛡️</div>
+          <div class="tile-label">Products</div>
+        </div>
+        <div class="tile" onclick="goto('card')">
+          <div class="tile-icon">💳</div>
+          <div class="tile-label">My Card</div>
+        </div>
+        <div class="tile" onclick="goto('profile')">
+          <div class="tile-icon">⚙️</div>
+          <div class="tile-label">Settings</div>
+        </div>
+        <div class="tile" onclick="syncToSheets()">
+          <div class="tile-icon">🔄</div>
+          <div class="tile-label">Sync</div>
+        </div>
+      </div>
+
+      <div class="section-title">Recent Quotes</div>
+      <div class="recent-list" id="recent-list">
+        <div class="empty-state"><div class="emoji">📋</div><p>No quotes yet.<br/>Generate your first quote!</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       QUOTE GENERATOR
+  ========================================================= -->
+  <div class="screen" id="screen-quote">
+    <div class="top-bar">
+      <h1>Quote Generator</h1>
+      <div class="top-bar-icon" onclick="goto('dashboard')">✕</div>
+    </div>
+    <div class="screen-body">
+      <div class="quote-form-card">
+        <div class="field-group">
+          <label>Client Full Name</label>
+          <input type="text" id="q-name" placeholder="e.g. Chisomo Banda"/>
+        </div>
+        <div class="field-group">
+          <label>Client Phone</label>
+          <input type="tel" id="q-phone" placeholder="+265 888 000 000"/>
+        </div>
+        <div class="field-group">
+          <label>Product</label>
+          <select id="q-product">
+            <option value="cashplus">Cash Plus Policy</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label>Monthly Premium (MWK)</label>
+          <div class="premium-slider-row">
+            <input type="range" id="q-slider" min="0" max="24" step="1" value="0" oninput="onSlider(this.value)"/>
+            <div class="premium-val" id="q-premium-display">MWK 10,000</div>
+          </div>
+          <select id="q-premium" onchange="onPremiumSelect(this.value)" style="margin-top:10px">
+            <option value="10000">MWK 10,000</option>
+            <option value="15000">MWK 15,000</option>
+            <option value="20000">MWK 20,000</option>
+            <option value="25000">MWK 25,000</option>
+            <option value="30000">MWK 30,000</option>
+            <option value="35000">MWK 35,000</option>
+            <option value="40000">MWK 40,000</option>
+            <option value="45000">MWK 45,000</option>
+            <option value="50000">MWK 50,000</option>
+            <option value="55000">MWK 55,000</option>
+            <option value="60000">MWK 60,000</option>
+            <option value="65000">MWK 65,000</option>
+            <option value="70000">MWK 70,000</option>
+            <option value="75000">MWK 75,000</option>
+            <option value="80000">MWK 80,000</option>
+            <option value="85000">MWK 85,000</option>
+            <option value="90000">MWK 90,000</option>
+            <option value="95000">MWK 95,000</option>
+            <option value="100000">MWK 100,000</option>
+            <option value="120000">MWK 120,000</option>
+            <option value="150000">MWK 150,000</option>
+            <option value="180000">MWK 180,000</option>
+            <option value="200000">MWK 200,000</option>
+            <option value="250000">MWK 250,000</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label>Notes (Optional)</label>
+          <input type="text" id="q-notes" placeholder="e.g. Follow up in 2 weeks"/>
+        </div>
+      </div>
+
+      <button class="btn-generate" onclick="generateQuote()">Generate Quote →</button>
+
+      <div id="quote-result">
+        <div class="result-card" id="result-card">
+          <div class="result-header">
+            <div class="result-header">
+              <div class="client-name" id="r-name">Client Name</div>
+              <div class="ref" id="r-ref">REF: —</div>
+              <div class="premium-badge">
+                <span class="amount" id="r-premium">0</span>
+                <span class="per">MWK / month</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="result-grid">
+            <div class="result-cell">
+              <div class="cell-label">Sum Assured</div>
+              <div class="cell-value" id="r-sum">—</div>
+            </div>
+            <div class="result-cell highlight">
+              <div class="cell-label">Maturity Value</div>
+              <div class="cell-value" id="r-maturity">—</div>
+            </div>
+            <div class="result-cell">
+              <div class="cell-label">Capital Invested</div>
+              <div class="cell-value" id="r-capital">—</div>
+            </div>
+            <div class="result-cell">
+              <div class="cell-label">Policy Term</div>
+              <div class="cell-value">12 Years</div>
+            </div>
+            <div class="result-cell wide">
+              <div class="cell-label">Death Benefit (Full Cover)</div>
+              <div class="cell-value" id="r-death">—</div>
+            </div>
+          </div>
+
+          <div class="bonus-row">
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--text-secondary)">Bonus Every 3rd Year</div>
+              <div style="font-size:10px;color:var(--text-muted)">10% of Sum Assured paid out</div>
+            </div>
+            <div class="bonus-badge" id="r-bonus">MWK 0</div>
+          </div>
+
+          <div class="scenario-tabs">
+            <div class="s-tab active" onclick="selectScenario(this,'base')" id="tab-base">Base</div>
+            <div class="s-tab" onclick="selectScenario(this,'5pct')" id="tab-5">+5% p.a.</div>
+            <div class="s-tab" onclick="selectScenario(this,'10pct')" id="tab-10">+10% p.a.</div>
+          </div>
+          <div style="padding:14px 16px 0">
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">PROJECTED MATURITY VALUE</div>
+            <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:800;color:var(--brand-green)" id="r-scenario-val">—</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px">All benefits are paid tax-free</div>
+          </div>
+
+          <div class="share-row">
+            <button class="share-btn whatsapp" onclick="shareWhatsApp()"><span>💬</span>WhatsApp</button>
+            <button class="share-btn email" onclick="shareEmail()"><span>📧</span>Email</button>
+            <button class="share-btn pdf" onclick="downloadPDF()"><span>📄</span>PDF</button>
+          </div>
+        </div>
+      </div>
+      <div style="height:20px"></div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       HISTORY
+  ========================================================= -->
+  <div class="screen" id="screen-history">
+    <div class="top-bar">
+      <h1>Quote History</h1>
+      <div class="top-bar-icon" id="hist-count-badge" style="background:var(--brand-blue);font-size:12px;font-weight:700">0</div>
+    </div>
+    <div class="screen-body">
+      <div class="search-wrap">
+        <input type="text" id="hist-search" placeholder="Search client name…" oninput="filterHistory()"/>
+      </div>
+      <div class="filter-chips">
+        <div class="chip active" onclick="setFilter(this,'all')">All</div>
+        <div class="chip" onclick="setFilter(this,'sent')">Sent</div>
+        <div class="chip" onclick="setFilter(this,'draft')">Draft</div>
+        <div class="chip" onclick="setFilter(this,'today')">Today</div>
+      </div>
+      <div class="hist-list" id="hist-list"></div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       PRODUCTS
+  ========================================================= -->
+  <div class="screen" id="screen-products">
+    <div class="top-bar">
+      <h1>Products</h1>
+    </div>
+    <div class="screen-body">
+      <div style="height:12px"></div>
+
+      <!-- Cash Plus -->
+      <div class="prod-card">
+        <div class="prod-banner">
+          <div>
+            <div style="font-size:10px;color:rgba(255,255,255,.6);font-weight:600;letter-spacing:.5px;margin-bottom:4px">INDIVIDUAL LIFE</div>
+            <div class="prod-banner-title">Cash Plus<br/>Policy</div>
+          </div>
+          <div class="prod-banner-icon">💰</div>
+          <div class="prod-badge live">● LIVE</div>
+        </div>
+        <div class="prod-body">
+          <h3>Cash Plus Policy</h3>
+          <p>A comprehensive savings and life protection plan that pays 10% of sum assured every 3 years plus a lump-sum maturity value at the end of the term.</p>
+          <div class="prod-features">
+            <div class="prod-feature">100% Life Cover from Day 1</div>
+            <div class="prod-feature">10% Bonus every 3rd year anniversary</div>
+            <div class="prod-feature">Tax-free maturity & death benefits</div>
+            <div class="prod-feature">No medical exam up to MWK 20 million</div>
+            <div class="prod-feature">Premium options: MWK 10,000–250,000/mo</div>
+            <div class="prod-feature">12-year investment term</div>
+          </div>
+          <button class="prod-cta" onclick="goto('quote')">Generate Quote →</button>
+        </div>
+      </div>
+
+      <!-- Child Saver -->
+      <div class="prod-card">
+        <div class="prod-banner green">
+          <div>
+            <div style="font-size:10px;color:rgba(255,255,255,.6);font-weight:600;letter-spacing:.5px;margin-bottom:4px">EDUCATION SAVINGS</div>
+            <div class="prod-banner-title">Child<br/>Saver</div>
+          </div>
+          <div class="prod-banner-icon">🎓</div>
+          <div class="prod-badge soon">Coming Soon</div>
+        </div>
+        <div class="prod-body">
+          <h3>Child Saver Plan</h3>
+          <p>Invest in your child's future with a dedicated education savings plan designed to fund quality schooling at key milestones.</p>
+          <div class="prod-features">
+            <div class="prod-feature">Milestone payouts at school transitions</div>
+            <div class="prod-feature">Life cover for parent/guardian</div>
+            <div class="prod-feature">Flexible premium options</div>
+          </div>
+          <button class="prod-cta disabled">Coming Soon</button>
+        </div>
+      </div>
+
+      <!-- Zonse Savings -->
+      <div class="prod-card">
+        <div class="prod-banner gold">
+          <div>
+            <div style="font-size:10px;color:rgba(255,255,255,.6);font-weight:600;letter-spacing:.5px;margin-bottom:4px">GROUP SAVINGS</div>
+            <div class="prod-banner-title">Zonse<br/>Savings Plan</div>
+          </div>
+          <div class="prod-banner-icon">🤝</div>
+          <div class="prod-badge soon">Coming Soon</div>
+        </div>
+        <div class="prod-body">
+          <h3>Zonse Savings Plan</h3>
+          <p>A group-oriented savings product that pools contributions for collective financial growth and shared life protection benefits.</p>
+          <div class="prod-features">
+            <div class="prod-feature">Group savings with life cover</div>
+            <div class="prod-feature">Accessible to informal groups & clubs</div>
+            <div class="prod-feature">Competitive returns</div>
+          </div>
+          <button class="prod-cta disabled">Coming Soon</button>
+        </div>
+      </div>
+      <div style="height:8px"></div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       BUSINESS CARD
+  ========================================================= -->
+  <div class="screen" id="screen-card">
+    <div class="top-bar">
+      <h1>My Business Card</h1>
+    </div>
+    <div class="screen-body">
+      <div class="card-preview-wrap">
+        <div id="biz-card">
+          <div class="card-nico-logo">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <path d="M4 22V6l10 11L24 6v16" stroke="#00AEEF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="14" cy="16" r="2.5" fill="#38D1F7"/>
+            </svg>
+          </div>
+          <div class="card-agent-name" id="card-name">Agent Name</div>
+          <div class="card-agent-title" id="card-title">Senior Insurance Agent</div>
+          <div class="card-divider"></div>
+          <div class="card-contacts">
+            <div class="card-contact-row"><span>📞</span><span id="card-phone">+265 000 000 000</span></div>
+            <div class="card-contact-row"><span>✉️</span><span id="card-email">agent@nicomw.com</span></div>
+            <div class="card-contact-row"><span>🌐</span><span>www.nicomw.com</span></div>
+          </div>
+          <div class="card-brand-row">
+            <div>
+              <div class="card-brand-name">NICO LIFE</div>
+              <div class="card-brand-tag">In Partnership with Sanlam|Allianz</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:10px;color:rgba(255,255,255,.5)">Call Centre</div>
+              <div style="font-size:13px;font-weight:700;color:var(--brand-sky)">323</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-actions">
+        <button class="card-action-btn primary" onclick="shareCard()">💬 Share Card</button>
+        <button class="card-action-btn secondary" onclick="saveCardImage()">📸 Save Image</button>
+      </div>
+
+      <div class="card-edit-section" style="margin-top:16px">
+        <h3>✏️ Edit Card Details</h3>
+        <div class="field-group">
+          <label>Your Name</label>
+          <input type="text" id="edit-name" placeholder="Full Name" oninput="updateCard()"/>
+        </div>
+        <div class="field-group">
+          <label>Job Title</label>
+          <input type="text" id="edit-title" placeholder="e.g. Senior Insurance Agent" oninput="updateCard()"/>
+        </div>
+        <div class="field-group">
+          <label>Phone</label>
+          <input type="tel" id="edit-phone" placeholder="+265 XXX XXX XXX" oninput="updateCard()"/>
+        </div>
+        <div class="field-group">
+          <label>Email</label>
+          <input type="email" id="edit-email" placeholder="your@email.com" oninput="updateCard()"/>
+        </div>
+        <button class="btn-generate" style="margin:0;width:100%" onclick="saveCardDetails()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       PROFILE & ADMIN
+  ========================================================= -->
+  <div class="screen" id="screen-profile">
+    <div class="screen-body">
+      <div class="profile-header">
+        <div class="profile-avatar" id="prof-avatar">A</div>
+        <div class="profile-name" id="prof-name">Agent</div>
+        <div class="profile-role" id="prof-role">Senior Agent · NICO Life</div>
+        <div class="profile-stats">
+          <div class="p-stat"><div class="v" id="ps-quotes">0</div><div class="l">Quotes</div></div>
+          <div class="p-stat"><div class="v" id="ps-sent">0</div><div class="l">Sent</div></div>
+          <div class="p-stat"><div class="v" id="ps-days">0</div><div class="l">Days Active</div></div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">Agent Details</div>
+        <div class="setting-item" onclick="openEditProfile()">
+          <div class="setting-item-left">
+            <div class="setting-item-icon blue">👤</div>
+            <div><div class="setting-label">Edit Profile</div><div class="setting-sub">Name, phone, email, agent ID</div></div>
+          </div>
+          <div class="setting-arrow">›</div>
+        </div>
+        <div class="setting-item" onclick="goto('card')">
+          <div class="setting-item-left">
+            <div class="setting-item-icon blue">💳</div>
+            <div><div class="setting-label">Business Card</div><div class="setting-sub">Edit & share your digital card</div></div>
+          </div>
+          <div class="setting-arrow">›</div>
+        </div>
+      </div>
+
+      <div class="sheets-config">
+        <h3>📊 Google Sheets Sync</h3>
+        <div class="sheets-status disconnected" id="sheets-status-label">Disconnected</div>
+        <div class="field-group">
+          <label>Webhook URL</label>
+          <input type="url" id="sheets-url" placeholder="https://script.google.com/macros/s/…"/>
+        </div>
+        <button class="btn-generate" style="margin:0;width:100%" onclick="saveSheets()">Connect Sheets</button>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">Preferences</div>
+        <div class="setting-item">
+          <div class="setting-item-left">
+            <div class="setting-item-icon green">🔔</div>
+            <div><div class="setting-label">Notifications</div><div class="setting-sub">Quote reminders & follow-ups</div></div>
+          </div>
+          <label class="toggle"><input type="checkbox" id="notif-toggle" checked/><span class="toggle-slider"></span></label>
+        </div>
+        <div class="setting-item">
+          <div class="setting-item-left">
+            <div class="setting-item-icon green">📤</div>
+            <div><div class="setting-label">Auto-sync Quotes</div><div class="setting-sub">Send to Sheets on generate</div></div>
+          </div>
+          <label class="toggle"><input type="checkbox" id="autosync-toggle"/><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">Data</div>
+        <div class="setting-item" onclick="exportData()">
+          <div class="setting-item-left">
+            <div class="setting-item-icon orange">📥</div>
+            <div><div class="setting-label">Export All Quotes</div><div class="setting-sub">Download as JSON</div></div>
+          </div>
+          <div class="setting-arrow">›</div>
+        </div>
+        <div class="setting-item" onclick="confirmClear()">
+          <div class="setting-item-left">
+            <div class="setting-item-icon red">🗑️</div>
+            <div><div class="setting-label">Clear All Data</div><div class="setting-sub">Remove all saved quotes</div></div>
+          </div>
+          <div class="setting-arrow">›</div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="setting-item" onclick="doLogout()">
+          <div class="setting-item-left">
+            <div class="setting-item-icon red">🚪</div>
+            <div><div class="setting-label" style="color:var(--brand-red)">Sign Out</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="text-align:center;padding:20px;color:var(--text-muted);font-size:11px">
+        NICO Life Agent App v1.0.0<br/>© 2025 NICO Life Insurance
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav" id="nav-bar">
+    <button class="nav-item active" data-screen="dashboard" onclick="goto('dashboard')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      <span>Home</span>
+    </button>
+    <button class="nav-item" data-screen="quote" onclick="goto('quote')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      <span>Quote</span>
+    </button>
+    <button class="nav-item" data-screen="history" onclick="goto('history')">
+      <svg viewBox="0 0 24 24"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+      <span>History</span>
+    </button>
+    <button class="nav-item" data-screen="products" onclick="goto('products')">
+      <svg viewBox="0 0 24 24"><path d="M3 3h18v4H3z"/><path d="M3 10h18v11H3z"/><line x1="8" y1="15" x2="16" y2="15"/></svg>
+      <span>Products</span>
+    </button>
+    <button class="nav-item" data-screen="profile" onclick="goto('profile')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      <span>Profile</span>
+    </button>
+  </nav>
+
+</div><!-- end #app -->
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal-sheet" id="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title">Modal</div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- HIDDEN PDF TEMPLATE -->
+<div id="pdf-template"></div>
+
+<script>
+// ============================================================
+// DATA TABLES
+// ============================================================
+const QUOTE_DATA = {
+  10000:  { sum:1283697.05, bonus:128369.71, cap:1440000, mat:1976893.45, mat5:2232000, mat10:4151476.25 },
+  15000:  { sum:1996862.07, bonus:199686.21, cap:2160000, mat:3975167.59, mat5:3348000, mat10:6457851.95 },
+  20000:  { sum:2710027.10, bonus:271002.71, cap:2880000, mat:4173441.73, mat5:4464000, mat10:8764227.64 },
+  25000:  { sum:3423192.13, bonus:342319.21, cap:3600000, mat:5271715.88, mat5:5580000, mat10:11070603.34 },
+  30000:  { sum:4136357.15, bonus:413635.72, cap:4320000, mat:6369990.02, mat5:6696000, mat10:13376979.03 },
+  35000:  { sum:4849522.18, bonus:484952.22, cap:5040000, mat:7468264.16, mat5:7812000, mat10:15683354.73 },
+  40000:  { sum:5562687.21, bonus:556268.72, cap:5760000, mat:8566538.30, mat5:8928000, mat10:17989730.42 },
+  45000:  { sum:6275851.23, bonus:627585.12, cap:6480000, mat:9664812.44, mat5:10044000, mat10:20296106.12 },
+  50000:  { sum:6989017.26, bonus:698901.73, cap:7200000, mat:10763086.56, mat5:11160000, mat10:22602481.81 },
+  55000:  { sum:7702182.28, bonus:770218.23, cap:7920000, mat:11861360.72, mat5:12276000, mat10:24908857.51 },
+  60000:  { sum:8415347.31, bonus:841534.73, cap:8640000, mat:12959634.86, mat5:13392000, mat10:27215233.20 },
+  65000:  { sum:9128512.34, bonus:912851.23, cap:9360000, mat:14057909.00, mat5:14508000, mat10:29521608.90 },
+  70000:  { sum:9841677.36, bonus:984167.74, cap:10080000, mat:15156183.14, mat5:15624000, mat10:31827984.60 },
+  75000:  { sum:10554842.23, bonus:1055484.22, cap:10800000, mat:16254457.28, mat5:16740000, mat10:34134360.29 },
+  80000:  { sum:11268007.42, bonus:1126800.74, cap:11520000, mat:17352731.42, mat5:17856000, mat10:36440735.99 },
+  85000:  { sum:11981172.44, bonus:1198117.24, cap:12240000, mat:18451005.56, mat5:18972000, mat10:38747111.68 },
+  90000:  { sum:12694337.47, bonus:1269433.75, cap:12960000, mat:19549279.70, mat5:20088000, mat10:41053487.38 },
+  95000:  { sum:13407502.50, bonus:1340750.25, cap:13680000, mat:20647553.84, mat5:21204000, mat10:43259863.07 },
+  100000: { sum:14120667.52, bonus:1412066.75, cap:14400000, mat:21745827.98, mat5:22320000, mat10:45666238.77 },
+  120000: { sum:16973327.63, bonus:1697332.76, cap:17280000, mat:26138924.55, mat5:26784000, mat10:54891741.55 },
+  150000: { sum:21252317.79, bonus:2125231.78, cap:21600000, mat:32728569.39, mat5:33480000, mat10:68729995.72 },
+  180000: { sum:25531307.94, bonus:2553130.79, cap:25920000, mat:39318214.23, mat5:40176000, mat10:82568249.89 },
+  200000: { sum:28383968.05, bonus:2838396.81, cap:28800000, mat:43711310.80, mat5:44640000, mat10:91793752.67 },
+  250000: { sum:35515618.31, bonus:3551561.83, cap:36000000, mat:54694052.20, mat5:55800000, mat10:114857509.63 }
+};
+
+const PREMIUM_STEPS = [10000,15000,20000,25000,30000,35000,40000,45000,50000,55000,60000,65000,70000,75000,80000,85000,90000,95000,100000,120000,150000,180000,200000,250000];
+
+// ============================================================
+// STATE
+// ============================================================
+let currentScreen = 'login';
+let currentAgent = null;
+let currentQuote = null;
+let historyFilter = 'all';
+
+// ============================================================
+// STORAGE HELPERS
+// ============================================================
+function load(k,def=null){try{const v=localStorage.getItem(k);return v?JSON.parse(v):def}catch{return def}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+
+function getQuotes(){return load('nico_quotes',[])}
+function saveQuote(q){const qs=getQuotes();qs.unshift(q);save('nico_quotes',qs)}
+function getAgent(){return load('nico_agent',null)}
+function saveAgent(a){save('nico_agent',a)}
+function getCard(){return load('nico_card',{})}
+function saveCard(c){save('nico_card',c)}
+
+// ============================================================
+// FORMAT HELPERS
+// ============================================================
+function fmt(n){return 'MWK '+Number(n).toLocaleString('en-MW',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function fmtShort(n){
+  if(n>=1e9)return 'MWK '+(n/1e9).toFixed(2)+'B';
+  if(n>=1e6)return 'MWK '+(n/1e6).toFixed(2)+'M';
+  if(n>=1e3)return 'MWK '+(n/1e3).toFixed(1)+'K';
+  return 'MWK '+n;
+}
+function genRef(){return 'NCL-'+Date.now().toString(36).toUpperCase()}
+function today(){return new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}
+function greeting(){const h=new Date().getHours();return h<12?'Good morning':h<17?'Good afternoon':'Good evening'}
+function getGreeting(){const h=new Date().getHours();if(h<12)return'Good morning,';if(h<17)return'Good afternoon,';return'Good evening,'}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function goto(screen){
+  // Hide all
+  document.querySelectorAll('.screen').forEach(s=>{s.classList.remove('active')});
+  const target = document.getElementById('screen-'+screen);
+  if(target){target.classList.add('active')}
+  currentScreen = screen;
+
+  // Nav bar visibility
+  const nav = document.getElementById('nav-bar');
+  if(screen==='login'){nav.style.display='none'}
+  else{nav.style.display='flex'}
+
+  // Active nav item
+  document.querySelectorAll('.nav-item').forEach(i=>{
+    i.classList.toggle('active', i.dataset.screen===screen);
+  });
+
+  // Screen-specific init
+  if(screen==='dashboard') initDashboard();
+  if(screen==='history') initHistory();
+  if(screen==='card') initCard();
+  if(screen==='profile') initProfile();
+}
+
+// ============================================================
+// LOGIN
+// ============================================================
+function doLogin(){
+  const user = document.getElementById('login-user').value.trim();
+  const pass = document.getElementById('login-pass').value.trim();
+  if(!user){showToast('Please enter your Agent ID or Email');return}
+  if(!pass){showToast('Please enter your password');return}
+
+  // Demo auth (replace with real API)
+  const agent = {
+    id: user,
+    name: user.toLowerCase().includes('@') ? user.split('@')[0] : user,
+    displayName: toTitleCase(user.replace(/[-_.]/g,' ').replace(/AGT/i,'Agent')),
+    role: 'Senior Agent',
+    phone: '+265 999 000 000',
+    email: user.toLowerCase().includes('@') ? user : user+'@nicomw.com',
+    joinDate: new Date().toISOString()
+  };
+  saveAgent(agent);
+  currentAgent = agent;
+  showToast('Welcome back! ✓');
+  setTimeout(()=>goto('dashboard'),400);
+}
+
+function toTitleCase(s){return s.replace(/\w\S*/g,t=>t.charAt(0).toUpperCase()+t.substr(1).toLowerCase())}
+
+function doLogout(){
+  if(confirm('Sign out of NICO Agent?')){
+    currentAgent=null;
+    goto('login');
+    document.getElementById('nav-bar').style.display='none';
+  }
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function initDashboard(){
+  currentAgent = currentAgent || getAgent();
+  if(!currentAgent){goto('login');return}
+
+  document.getElementById('dash-greeting').textContent = getGreeting();
+  document.getElementById('dash-agent-name').textContent = currentAgent.displayName || currentAgent.name;
+
+  const quotes = getQuotes();
+  const now = new Date();
+  const weekAgo = new Date(now-7*864e5);
+  const weekQuotes = quotes.filter(q=>new Date(q.date)>=weekAgo);
+  const sentQuotes = quotes.filter(q=>q.status==='sent');
+  const avgPrem = quotes.length ? Math.round(quotes.reduce((s,q)=>s+q.premium,0)/quotes.length) : 0;
+
+  document.getElementById('stat-quotes').textContent = quotes.length;
+  document.getElementById('stat-week').textContent = weekQuotes.length;
+  document.getElementById('stat-avg').textContent = avgPrem ? fmtShort(avgPrem).replace('MWK ','') : '—';
+  document.getElementById('stat-sent').textContent = sentQuotes.length;
+
+  // Recent
+  const recList = document.getElementById('recent-list');
+  if(!quotes.length){
+    recList.innerHTML='<div class="empty-state"><div class="emoji">📋</div><p>No quotes yet.<br/>Generate your first quote!</p></div>';
+    return;
+  }
+  recList.innerHTML = quotes.slice(0,5).map(q=>`
+    <div class="recent-card" onclick="viewHistQuote('${q.ref}')">
+      <div class="recent-avatar">${q.client.charAt(0).toUpperCase()}</div>
+      <div class="recent-info">
+        <div class="recent-name">${q.client}</div>
+        <div class="recent-meta">${q.product} · ${new Date(q.date).toLocaleDateString('en-GB',{day:'2-digit',month:'short'})}</div>
+      </div>
+      <div class="recent-amount">${fmtShort(q.premium)}/mo</div>
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// QUOTE GENERATOR
+// ============================================================
+function onSlider(idx){
+  const premium = PREMIUM_STEPS[parseInt(idx)];
+  document.getElementById('q-premium').value = premium;
+  document.getElementById('q-premium-display').textContent = fmt(premium).replace('MWK ','MWK ');
+}
+function onPremiumSelect(val){
+  const idx = PREMIUM_STEPS.indexOf(parseInt(val));
+  document.getElementById('q-slider').value = idx>=0?idx:0;
+  document.getElementById('q-premium-display').textContent = 'MWK '+Number(val).toLocaleString();
+}
+
+let activeScenario = 'base';
+function selectScenario(el,key){
+  document.querySelectorAll('.s-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  activeScenario = key;
+  if(!currentQuote)return;
+  const d = QUOTE_DATA[currentQuote.premium];
+  const val = key==='base'?d.mat : key==='5pct'?d.mat5 : d.mat10;
+  document.getElementById('r-scenario-val').textContent = fmt(val);
+}
+
+function generateQuote(){
+  const name = document.getElementById('q-name').value.trim();
+  const phone = document.getElementById('q-phone').value.trim();
+  const premium = parseInt(document.getElementById('q-premium').value);
+  const notes = document.getElementById('q-notes').value.trim();
+
+  if(!name){showToast('Please enter client name');return}
+  if(!QUOTE_DATA[premium]){showToast('Please select a valid premium');return}
+
+  const d = QUOTE_DATA[premium];
+  const ref = genRef();
+  const quote = {
+    ref, client:name, phone, premium,
+    product:'Cash Plus Policy',
+    data:d, notes,
+    date:new Date().toISOString(),
+    status:'draft',
+    agent: currentAgent?.displayName || 'Agent'
+  };
+  currentQuote = quote;
+
+  // Populate result
+  document.getElementById('r-name').textContent = name;
+  document.getElementById('r-ref').textContent = 'REF: '+ref;
+  document.getElementById('r-premium').textContent = Number(premium).toLocaleString();
+  document.getElementById('r-sum').textContent = fmt(d.sum);
+  document.getElementById('r-maturity').textContent = fmt(d.mat);
+  document.getElementById('r-capital').textContent = fmt(d.cap);
+  document.getElementById('r-death').textContent = fmt(d.sum)+' (100% Cover)';
+  document.getElementById('r-bonus').textContent = fmt(d.bonus);
+  document.getElementById('r-scenario-val').textContent = fmt(d.mat);
+
+  // Reset scenario tabs
+  document.querySelectorAll('.s-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-base').classList.add('active');
+  activeScenario='base';
+
+  document.getElementById('quote-result').style.display='block';
+
+  // Save to history
+  saveQuote(quote);
+
+  // Auto-sync
+  if(load('nico_autosync',false)){syncQuote(quote)}
+
+  showToast('Quote generated & saved ✓');
+  setTimeout(()=>document.getElementById('quote-result').scrollIntoView({behavior:'smooth'}),100);
+}
+
+// ============================================================
+// SHARING
+// ============================================================
+function buildShareText(q){
+  const d=q.data;
+  return `*NICO Life Insurance — Cash Plus Policy*\n\n`+
+    `Hello ${q.client}! 👋\n\n`+
+    `Here is your personalised quotation:\n\n`+
+    `📋 *Ref:* ${q.ref}\n`+
+    `💰 *Monthly Premium:* ${fmt(q.premium)}\n`+
+    `🛡️ *Sum Assured:* ${fmt(d.sum)}\n`+
+    `🎁 *3-Year Bonus (10%):* ${fmt(d.bonus)}\n`+
+    `📈 *Maturity Value (12 yrs):* ${fmt(d.mat)}\n`+
+    `💎 *With 10% p.a. increases:* ${fmt(d.mat10)}\n\n`+
+    `✅ Tax-free benefits\n✅ No medical exam up to MWK 20M\n✅ Full life cover from Day 1\n\n`+
+    `*Prepared by:* ${q.agent}\n`+
+    `*Date:* ${new Date(q.date).toLocaleDateString('en-GB')}\n\n`+
+    `Call: 323 | WhatsApp: 0991 323 323\nwww.nicomw.com`;
+}
+
+function shareWhatsApp(){
+  if(!currentQuote){showToast('Generate a quote first');return}
+  const text=buildShareText(currentQuote);
+  const phone=document.getElementById('q-phone').value.replace(/\s/g,'');
+  const url=`https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+  window.open(url,'_blank');
+  markSent();
+}
+
+function shareEmail(){
+  if(!currentQuote){showToast('Generate a quote first');return}
+  const q=currentQuote;const d=q.data;
+  const sub=`NICO Life — Cash Plus Quotation for ${q.client}`;
+  const body=buildShareText(q).replace(/\*/g,'');
+  window.open(`mailto:?subject=${encodeURIComponent(sub)}&body=${encodeURIComponent(body)}`,'_blank');
+  markSent();
+}
+
+function markSent(){
+  if(!currentQuote)return;
+  const qs=getQuotes();
+  const i=qs.findIndex(q=>q.ref===currentQuote.ref);
+  if(i>=0){qs[i].status='sent';save('nico_quotes',qs);currentQuote.status='sent'}
+  showToast('Quote shared ✓');
+}
+
+async function downloadPDF(){
+  if(!currentQuote){showToast('Generate a quote first');return}
+  showToast('Preparing PDF…');
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const q=currentQuote; const d=q.data;
+  const W=doc.internal.pageSize.getWidth();
+
+  // Header bg
+  doc.setFillColor(6,27,80);
+  doc.rect(0,0,W,50,'F');
+
+  // Brand accent
+  doc.setFillColor(0,174,239);
+  doc.rect(0,48,W,3,'F');
+
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(22);doc.setFont('helvetica','bold');
+  doc.text('NICO Life Insurance',14,20);
+  doc.setFontSize(11);doc.setFont('helvetica','normal');
+  doc.text('Cash Plus Policy — Personalised Quotation',14,30);
+  doc.setFontSize(9);
+  doc.text('In Partnership with Sanlam|Allianz',14,40);
+  doc.text('Call: 323  |  www.nicomw.com',W-14,40,{align:'right'});
+
+  // Client info box
+  doc.setFillColor(242,246,255);
+  doc.roundedRect(14,58,W-28,30,3,3,'F');
+  doc.setTextColor(6,27,80);
+  doc.setFontSize(11);doc.setFont('helvetica','bold');
+  doc.text('CLIENT INFORMATION',18,68);
+  doc.setFontSize(10);doc.setFont('helvetica','normal');
+  doc.setTextColor(74,88,128);
+  doc.text(`Name: ${q.client}`,18,76);
+  doc.text(`Phone: ${q.phone||'—'}`,18,83);
+  doc.text(`Date: ${new Date(q.date).toLocaleDateString('en-GB')}`,W/2+4,76);
+  doc.text(`Ref: ${q.ref}`,W/2+4,83);
+
+  // Premium highlight
+  doc.setFillColor(10,63,168);
+  doc.roundedRect(14,94,W-28,18,3,3,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(13);doc.setFont('helvetica','bold');
+  doc.text(`Monthly Premium: ${fmt(q.premium)}`,18,105);
+  doc.setFontSize(10);doc.setFont('helvetica','normal');
+  doc.text('12-Year Term | Cash Plus Policy',W-18,105,{align:'right'});
+
+  // Benefits table
+  const rows=[
+    ['Sum Assured (Life Cover)',fmt(d.sum)],
+    ['3-Year Bonus (10% of Sum Assured)',fmt(d.bonus)],
+    ['Total Capital Invested',fmt(d.cap)],
+    ['Maturity Value (Base)',fmt(d.mat)],
+    ['Maturity Value (+5% p.a. increases)',fmt(d.mat5)],
+    ['Maturity Value (+10% p.a. increases)',fmt(d.mat10)],
+  ];
+  let y=122;
+  doc.setFontSize(11);doc.setFont('helvetica','bold');
+  doc.setTextColor(6,27,80);
+  doc.text('BENEFIT SUMMARY',14,y);y+=6;
+  doc.setDrawColor(221,228,242);
+  rows.forEach((r,i)=>{
+    if(i%2===0){doc.setFillColor(248,250,255);doc.rect(14,y,W-28,9,'F')}
+    doc.setFontSize(9);doc.setFont('helvetica',i>=3?'bold':'normal');
+    doc.setTextColor(i>=3?6:74,i>=3?27:88,i>=3?80:128);
+    doc.text(r[0],18,y+6);
+    doc.setTextColor(10,63,168);doc.setFont('helvetica','bold');
+    doc.text(r[1],W-18,y+6,{align:'right'});
+    y+=9;
+  });
+
+  // Highlights
+  y+=8;
+  doc.setFillColor(231,249,239);
+  doc.roundedRect(14,y,W-28,28,3,3,'F');
+  doc.setTextColor(22,163,74);doc.setFontSize(11);doc.setFont('helvetica','bold');
+  doc.text('Key Benefits',18,y+8);
+  doc.setFontSize(9);doc.setFont('helvetica','normal');
+  doc.setTextColor(74,88,128);
+  doc.text('✓  100% Life Cover from Day 1',18,y+16);
+  doc.text('✓  Tax-free maturity & death benefits',18,y+22);
+  doc.text('✓  No medical examination up to MWK 20 Million',90,y+16);
+  doc.text('✓  10% bonus paid every 3rd year anniversary',90,y+22);
+
+  // Footer
+  doc.setFillColor(6,27,80);
+  doc.rect(0,doc.internal.pageSize.getHeight()-16,W,16,'F');
+  doc.setTextColor(255,255,255);doc.setFontSize(8);doc.setFont('helvetica','normal');
+  doc.text(`Prepared by: ${q.agent}  |  NICO Life Insurance  |  customercare@nicomw.com  |  WhatsApp: 0991 323 323`,W/2,doc.internal.pageSize.getHeight()-6,{align:'center'});
+
+  doc.save(`NICO_Quote_${q.client.replace(/\s/g,'_')}_${q.ref}.pdf`);
+  markSent();
+  showToast('PDF downloaded ✓');
+}
+
+// ============================================================
+// HISTORY
+// ============================================================
+function initHistory(){
+  renderHistory();
+  const quotes=getQuotes();
+  document.getElementById('hist-count-badge').textContent=quotes.length;
+}
+
+function renderHistory(){
+  const search=document.getElementById('hist-search').value.toLowerCase();
+  let quotes=getQuotes();
+  const now=new Date();
+
+  if(historyFilter==='sent') quotes=quotes.filter(q=>q.status==='sent');
+  if(historyFilter==='draft') quotes=quotes.filter(q=>q.status==='draft');
+  if(historyFilter==='today') quotes=quotes.filter(q=>new Date(q.date).toDateString()===now.toDateString());
+  if(search) quotes=quotes.filter(q=>q.client.toLowerCase().includes(search)||q.ref.toLowerCase().includes(search));
+
+  const list=document.getElementById('hist-list');
+  if(!quotes.length){
+    list.innerHTML='<div class="empty-state"><div class="emoji">🔍</div><p>No quotes found.</p></div>';
+    return;
+  }
+  list.innerHTML=quotes.map(q=>`
+    <div class="hist-card" onclick="openQuoteDetail('${q.ref}')">
+      <div class="hist-top">
+        <div class="hist-client">${q.client}</div>
+        <div class="hist-amount">${fmtShort(q.premium)}/mo</div>
+      </div>
+      <div class="hist-meta">
+        <div class="hist-date">📅 ${new Date(q.date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</div>
+        <div class="hist-status ${q.status}">${q.status==='sent'?'Sent':'Draft'}</div>
+        <div style="font-size:11px;color:var(--text-muted)">${q.ref}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterHistory(){renderHistory()}
+function setFilter(el,f){
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  historyFilter=f;
+  renderHistory();
+}
+
+function openQuoteDetail(ref){
+  const q=getQuotes().find(x=>x.ref===ref);
+  if(!q)return;
+  const d=q.data;
+  openModal('Quote Details',`
+    <div style="margin-bottom:12px">
+      <div style="font-size:18px;font-family:'Playfair Display',serif;font-weight:700;color:var(--brand-dark)">${q.client}</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${q.ref} · ${new Date(q.date).toLocaleDateString('en-GB')}</div>
+    </div>
+    <div style="background:var(--brand-blue);border-radius:10px;padding:14px;margin-bottom:14px">
+      <div style="font-size:11px;color:rgba(255,255,255,.7)">Monthly Premium</div>
+      <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#fff">${fmt(q.premium)}</div>
+    </div>
+    ${infoRow('Sum Assured',fmt(d.sum))}
+    ${infoRow('Maturity Value',fmt(d.mat))}
+    ${infoRow('3-Year Bonus',fmt(d.bonus))}
+    ${infoRow('Capital Invested',fmt(d.cap))}
+    ${infoRow('With 10% p.a.',fmt(d.mat10))}
+    ${infoRow('Status',q.status==='sent'?'✅ Sent':'📝 Draft')}
+    ${q.notes?infoRow('Notes',q.notes):''}
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button onclick="reloadQuoteToGenerator('${ref}')" style="flex:1;padding:13px;border-radius:10px;background:var(--brand-blue);color:var(--white);font-weight:700;font-size:13px;cursor:pointer;border:none">Re-open</button>
+      <button onclick="deleteQuote('${ref}')" style="flex:1;padding:13px;border-radius:10px;background:var(--surface);color:var(--brand-red);font-weight:700;font-size:13px;cursor:pointer;border:1.5px solid var(--border)">Delete</button>
+    </div>
+  `);
+}
+
+function infoRow(l,v){return`<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)"><div style="font-size:13px;color:var(--text-muted)">${l}</div><div style="font-size:13px;font-weight:700;color:var(--brand-dark);text-align:right">${v}</div></div>`}
+
+function reloadQuoteToGenerator(ref){
+  const q=getQuotes().find(x=>x.ref===ref);if(!q)return;
+  closeModal();
+  document.getElementById('q-name').value=q.client;
+  document.getElementById('q-phone').value=q.phone||'';
+  document.getElementById('q-premium').value=q.premium;
+  onPremiumSelect(q.premium);
+  document.getElementById('q-notes').value=q.notes||'';
+  goto('quote');
+}
+
+function deleteQuote(ref){
+  let qs=getQuotes();
+  qs=qs.filter(q=>q.ref!==ref);
+  save('nico_quotes',qs);
+  closeModal();
+  renderHistory();
+  showToast('Quote deleted');
+}
+
+function viewHistQuote(ref){openQuoteDetail(ref)}
+
+// ============================================================
+// BUSINESS CARD
+// ============================================================
+function initCard(){
+  const agent=currentAgent||getAgent()||{};
+  const card=getCard();
+  const n=card.name||agent.displayName||agent.name||'';
+  const t=card.title||agent.role||'Insurance Agent';
+  const p=card.phone||agent.phone||'';
+  const e=card.email||agent.email||'';
+
+  document.getElementById('edit-name').value=n;
+  document.getElementById('edit-title').value=t;
+  document.getElementById('edit-phone').value=p;
+  document.getElementById('edit-email').value=e;
+  updateCard();
+}
+
+function updateCard(){
+  const n=document.getElementById('edit-name').value||'Agent Name';
+  const t=document.getElementById('edit-title').value||'Insurance Agent';
+  const p=document.getElementById('edit-phone').value||'+265 000 000 000';
+  const e=document.getElementById('edit-email').value||'agent@nicomw.com';
+  document.getElementById('card-name').textContent=n;
+  document.getElementById('card-title').textContent=t;
+  document.getElementById('card-phone').textContent=p;
+  document.getElementById('card-email').textContent=e;
+}
+
+function saveCardDetails(){
+  const c={
+    name:document.getElementById('edit-name').value,
+    title:document.getElementById('edit-title').value,
+    phone:document.getElementById('edit-phone').value,
+    email:document.getElementById('edit-email').value
+  };
+  saveCard(c);
+  showToast('Card details saved ✓');
+}
+
+function shareCard(){
+  const c=getCard();const agent=currentAgent||getAgent()||{};
+  const n=c.name||agent.displayName||'Agent';
+  const p=c.phone||agent.phone||'';
+  const e=c.email||agent.email||'';
+  const text=`Hi! I'm *${n}*, an Insurance Agent at *NICO Life Insurance*.\n\n📞 ${p}\n✉️ ${e}\n🌐 www.nicomw.com\n\n_In Partnership with Sanlam|Allianz_\nCall Centre: 323`;
+  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`,'_blank');
+}
+
+async function saveCardImage(){
+  showToast('Saving card image…');
+  try{
+    const card=document.getElementById('biz-card');
+    const canvas=await html2canvas(card,{scale:3,backgroundColor:null,useCORS:true});
+    const link=document.createElement('a');
+    link.download='NICO_Business_Card.png';
+    link.href=canvas.toDataURL('image/png');
+    link.click();
+    showToast('Card image saved ✓');
+  }catch(e){showToast('Could not save image')}
+}
+
+// ============================================================
+// PROFILE
+// ============================================================
+function initProfile(){
+  const agent=currentAgent||getAgent()||{};
+  const quotes=getQuotes();
+  const init=(agent.displayName||agent.name||'A').charAt(0).toUpperCase();
+  document.getElementById('prof-avatar').textContent=init;
+  document.getElementById('prof-name').textContent=agent.displayName||agent.name||'Agent';
+  document.getElementById('prof-role').textContent=(agent.role||'Agent')+' · NICO Life';
+  document.getElementById('ps-quotes').textContent=quotes.length;
+  document.getElementById('ps-sent').textContent=quotes.filter(q=>q.status==='sent').length;
+  const join=agent.joinDate?Math.floor((Date.now()-new Date(agent.joinDate))/864e5):0;
+  document.getElementById('ps-days').textContent=join;
+
+  // Load sheets URL
+  const url=load('nico_sheets_url','');
+  if(url){document.getElementById('sheets-url').value=url;setSheetStatus(true)}
+
+  const card=getCard();
+  if(card.name){document.getElementById('prof-name').textContent=card.name}
+}
+
+function setSheetStatus(connected){
+  const el=document.getElementById('sheets-status-label');
+  if(connected){el.textContent='Connected';el.className='sheets-status connected'}
+  else{el.textContent='Disconnected';el.className='sheets-status disconnected'}
+}
+
+function saveSheets(){
+  const url=document.getElementById('sheets-url').value.trim();
+  if(!url){showToast('Please enter a webhook URL');return}
+  save('nico_sheets_url',url);
+  setSheetStatus(true);
+  showToast('Google Sheets connected ✓');
+}
+
+function openEditProfile(){
+  const agent=currentAgent||getAgent()||{};
+  openModal('Edit Profile',`
+    <div class="field-group"><label>Display Name</label><input id="ep-name" type="text" value="${agent.displayName||agent.name||''}"/></div>
+    <div class="field-group"><label>Agent ID</label><input id="ep-id" type="text" value="${agent.id||''}"/></div>
+    <div class="field-group"><label>Phone</label><input id="ep-phone" type="tel" value="${agent.phone||''}"/></div>
+    <div class="field-group"><label>Email</label><input id="ep-email" type="email" value="${agent.email||''}"/></div>
+    <div class="field-group"><label>Role/Title</label><input id="ep-role" type="text" value="${agent.role||'Senior Agent'}"/></div>
+    <button onclick="saveProfile()" style="width:100%;padding:14px;border-radius:10px;background:var(--brand-blue);color:#fff;font-weight:700;font-size:14px;cursor:pointer;border:none;margin-top:4px">Save Profile</button>
+  `);
+}
+
+function saveProfile(){
+  const agent=currentAgent||getAgent()||{};
+  agent.displayName=document.getElementById('ep-name').value;
+  agent.id=document.getElementById('ep-id').value;
+  agent.phone=document.getElementById('ep-phone').value;
+  agent.email=document.getElementById('ep-email').value;
+  agent.role=document.getElementById('ep-role').value;
+  saveAgent(agent);currentAgent=agent;
+  closeModal();showToast('Profile saved ✓');
+  initProfile();
+}
+
+// ============================================================
+// GOOGLE SHEETS SYNC
+// ============================================================
+async function syncQuote(q){
+  const url=load('nico_sheets_url','');
+  if(!url)return;
+  try{
+    await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        ref:q.ref,client:q.client,phone:q.phone,
+        premium:q.premium,sumAssured:q.data.sum,
+        maturityValue:q.data.mat,bonus:q.data.bonus,
+        date:q.date,agent:q.agent,status:q.status
+      })
+    });
+    showToast('Synced to Sheets ✓');
+  }catch{showToast('Sync failed — check URL')}
+}
+
+async function syncToSheets(){
+  const url=load('nico_sheets_url','');
+  if(!url){showToast('Set Sheets URL in Settings first');goto('profile');return}
+  const quotes=getQuotes();
+  if(!quotes.length){showToast('No quotes to sync');return}
+  showToast('Syncing '+quotes.length+' quotes…');
+  for(const q of quotes){await syncQuote(q)}
+  showToast('All quotes synced ✓');
+}
+
+// ============================================================
+// DATA MANAGEMENT
+// ============================================================
+function exportData(){
+  const quotes=getQuotes();
+  const blob=new Blob([JSON.stringify(quotes,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='NICO_Quotes_Export_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  showToast('Data exported ✓');
+}
+
+function confirmClear(){
+  openModal('Clear All Data',`
+    <div style="text-align:center;padding:16px 0">
+      <div style="font-size:40px;margin-bottom:12px">⚠️</div>
+      <p style="color:var(--text-secondary);font-size:14px;margin-bottom:20px">This will permanently delete all saved quotes. This action cannot be undone.</p>
+      <div style="display:flex;gap:10px">
+        <button onclick="closeModal()" style="flex:1;padding:13px;border-radius:10px;background:var(--surface);color:var(--text-primary);font-weight:700;font-size:14px;cursor:pointer;border:1.5px solid var(--border)">Cancel</button>
+        <button onclick="clearAllData()" style="flex:1;padding:13px;border-radius:10px;background:var(--brand-red);color:#fff;font-weight:700;font-size:14px;cursor:pointer;border:none">Delete All</button>
+      </div>
+    </div>
+  `);
+}
+
+function clearAllData(){
+  save('nico_quotes',[]);
+  closeModal();
+  showToast('All data cleared');
+  initProfile();
+}
+
+// ============================================================
+// MODAL
+// ============================================================
+function openModal(title,body){
+  document.getElementById('modal-title').textContent=title;
+  document.getElementById('modal-body').innerHTML=body;
+  // Apply field styles to dynamically created inputs
+  document.querySelectorAll('#modal-body input,#modal-body select').forEach(el=>{
+    el.style.cssText='width:100%;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-size:15px;color:var(--text-primary);background:var(--surface);margin-bottom:4px;font-family:var(--ff-body)';
+  });
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal(e){
+  if(e&&e.target!==document.getElementById('modal-overlay'))return;
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+function closeModal(){document.getElementById('modal-overlay').classList.remove('open')}
+
+// ============================================================
+// TOAST
+// ============================================================
+let toastTimer;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// ============================================================
+// PWA SERVICE WORKER (inline)
+// ============================================================
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').then(reg=>{
+    console.log('[NICO] Service Worker registered:', reg.scope);
+  }).catch(err=>console.warn('[NICO] SW registration failed:', err));
+}
+
+// ============================================================
+// MANIFEST (dynamic)
+// ============================================================
+// manifest.json is linked in <head>
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded',()=>{
+  // Check saved session
+  const agent=getAgent();
+  if(agent){
+    currentAgent=agent;
+    goto('dashboard');
+  } else {
+    goto('login');
+  }
+  // Slider init
+  document.getElementById('q-slider').max=PREMIUM_STEPS.length-1;
+  // Card load
+  const card=getCard();
+  if(card.name){
+    document.getElementById('card-name').textContent=card.name;
+    document.getElementById('card-title').textContent=card.title||'Insurance Agent';
+    document.getElementById('card-phone').textContent=card.phone||'';
+    document.getElementById('card-email').textContent=card.email||'';
+  }
+});
+
+// Handle hardware back on mobile
+window.addEventListener('popstate',()=>{
+  if(currentScreen!=='dashboard'&&currentScreen!=='login') goto('dashboard');
+});
+</script>
+</body>
+</html>
